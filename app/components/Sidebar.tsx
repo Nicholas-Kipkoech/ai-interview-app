@@ -45,7 +45,7 @@ export default function Sidebar() {
         <Accordion type="single" collapsible className="space-y-1">
           {/* Hiring */}
           <Link
-            href="/hiring"
+            href="/"
             className="flex items-center gap-2 px-2 py-1 text-sm hover:bg-gray-100 rounded"
           >
             <BookOpen className="h-4 w-4" />

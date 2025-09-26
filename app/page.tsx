@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Copy, Link } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 const positions = [
   {
@@ -44,6 +45,7 @@ const positions = [
 ];
 
 export default function Home() {
+  const router = useRouter();
   return (
     <div className="flex flex-col w-full p-6 space-y-6">
       {/* Header */}
@@ -64,7 +66,9 @@ export default function Home() {
             </p>
           </div>
 
-          <Button>Add Position</Button>
+          <Button onClick={() => router.push("/hiring/add")}>
+            Add Position
+          </Button>
         </div>
 
         <div className="overflow-x-auto">

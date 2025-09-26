@@ -4,6 +4,20 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ViewIcon } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 type Applicant = {
   id: number;
@@ -13,6 +27,8 @@ type Applicant = {
   ended: string;
   progress: "In Process" | "Completed";
   status: "Not Scored" | "Pass" | "Fail" | null;
+  questions?: { id: number; question: string; answer: string }[];
+  videoUrl?: string;
 };
 
 export default function Analytics() {
@@ -23,6 +39,9 @@ export default function Analytics() {
   ];
 
   const [search, setSearch] = useState("");
+  const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(
+    null
+  );
 
   const applicants: Applicant[] = [
     {
@@ -33,6 +52,19 @@ export default function Analytics() {
       ended: "2024-11-03",
       progress: "In Process",
       status: "Not Scored",
+      videoUrl: "/videos/john.mp4",
+      questions: [
+        {
+          id: 1,
+          question: "Tell us about yourself.",
+          answer: "I am a software engineer with 5 years of experience...",
+        },
+        {
+          id: 2,
+          question: "Why do you want this job?",
+          answer: "Because it aligns with my career goals...",
+        },
+      ],
     },
     {
       id: 2,
@@ -42,15 +74,14 @@ export default function Analytics() {
       ended: "2024-11-06",
       progress: "Completed",
       status: "Fail",
-    },
-    {
-      id: 3,
-      name: "Michael Johnson",
-      email: "michael@example.com",
-      started: "2024-11-02",
-      ended: "2024-11-04",
-      progress: "In Process",
-      status: null,
+      videoUrl: "/videos/jane.mp4",
+      questions: [
+        {
+          id: 1,
+          question: "Tell us about yourself.",
+          answer: "I recently graduated with a degree in Computer Science...",
+        },
+      ],
     },
   ];
 
@@ -110,12 +141,62 @@ export default function Analytics() {
                   <td className="px-4 py-2">{a.started}</td>
                   <td className="px-4 py-2">{a.ended}</td>
                   <td className="px-4 py-2">{a.progress}</td>
-                  <td className="px-4 py-2">{a.status ? a.status : "Null"}</td>
+                  <td className="px-4 py-2">{a.status ?? "Null"}</td>
                   <td className="px-4 py-2">
-                    <Button variant="outline" size="sm">
-                      <ViewIcon />
-                      View Application
-                    </Button>
+                    <Sheet>
+                      <SheetTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedApplicant(a)}
+                        >
+                          <ViewIcon className="mr-2 h-4 w-4" />
+                          View Application
+                        </Button>
+                      </SheetTrigger>
+                      <SheetContent
+                        side="right"
+                        className="w-[400px] sm:w-[600px] overflow-y-auto"
+                      >
+                        {selectedApplicant && (
+                          <>
+                            <SheetHeader>
+                              <SheetTitle>{selectedApplicant.name}</SheetTitle>
+                              <SheetDescription>
+                                {selectedApplicant.email}
+                              </SheetDescription>
+                            </SheetHeader>
+
+                            {/* Video */}
+                            {selectedApplicant.videoUrl && (
+                              <div className="mb-6">
+                                <video
+                                  src={selectedApplicant.videoUrl}
+                                  controls
+                                  className="w-full rounded"
+                                />
+                              </div>
+                            )}
+
+                            {/* Questions Accordion */}
+                            {selectedApplicant.questions && (
+                              <Accordion type="single" collapsible>
+                                {selectedApplicant.questions.map((q) => (
+                                  <AccordionItem key={q.id} value={`q-${q.id}`}>
+                                    <AccordionTrigger>
+                                      {q.question}
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                      {q.answer}
+                                    </AccordionContent>
+                                  </AccordionItem>
+                                ))}
+                              </Accordion>
+                            )}
+                          </>
+                        )}
+                      </SheetContent>
+                    </Sheet>
                   </td>
                 </tr>
               ))}
