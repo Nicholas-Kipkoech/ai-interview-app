@@ -136,7 +136,7 @@ export default function AddInterview() {
             placeholder="Introduction text..."
             value={intro.text}
             onChange={(e) => setIntro({ ...intro, text: e.target.value })}
-            className="max-w-full h-6 "
+            className="h-[140px] w-full resize-none"
           />
         </div>
       </div>
@@ -207,7 +207,7 @@ export default function AddInterview() {
                     )
                   )
                 }
-                className="w-full"
+                className="h-[95px] w-full resize-none"
               />
             </div>
           </div>
@@ -236,7 +236,7 @@ export default function AddInterview() {
             placeholder="Farewell message script"
             value={farewell.text}
             onChange={(e) => setFarewell({ ...farewell, text: e.target.value })}
-            className="max-w-full h-full"
+            className="h-[140px] w-full resize-none"
           />
         </div>
       </div>
