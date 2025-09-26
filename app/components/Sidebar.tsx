@@ -32,8 +32,7 @@ export default function Sidebar() {
           <Briefcase className="h-5 w-5" />
         </div>
         <div>
-          <p className="font-semibold">Documentation</p>
-          <p className="text-xs text-gray-500">v1.0.1</p>
+          <p className="font-semibold">AI Interview App</p>
         </div>
       </div>
 
@@ -45,32 +44,19 @@ export default function Sidebar() {
 
         <Accordion type="single" collapsible className="space-y-1">
           {/* Hiring */}
-          <AccordionItem value="hiring">
-            <AccordionTrigger className="flex items-center gap-2 px-2 py-1 text-sm hover:bg-gray-100 rounded">
-              <Briefcase className="h-4 w-4" />
-              Hiring
-            </AccordionTrigger>
-            <AccordionContent className="ml-6 space-y-1">
-              <Link
-                href="/hiring/history"
-                className="block px-2 py-1 text-sm hover:bg-gray-100 rounded"
-              >
-                History
-              </Link>
-              <Link
-                href="/hiring/settings"
-                className="block px-2 py-1 text-sm hover:bg-gray-100 rounded"
-              >
-                Settings
-              </Link>
-            </AccordionContent>
-          </AccordionItem>
+          <Link
+            href="/hiring"
+            className="flex items-center gap-2 px-2 py-1 text-sm hover:bg-gray-100 rounded"
+          >
+            <BookOpen className="h-4 w-4" />
+            Hiring
+          </Link>
 
           {/* Onboarding */}
           <AccordionItem value="onboarding">
             <AccordionTrigger className="flex items-center gap-2 px-2 py-1 text-sm hover:bg-gray-100 rounded">
               <BookOpen className="h-4 w-4" />
-              Onboarding
+              Onboarding/Certification
             </AccordionTrigger>
           </AccordionItem>
 
@@ -173,8 +159,8 @@ export default function Sidebar() {
             className="rounded-full"
           />
           <div>
-            <p className="text-sm font-medium">shadcn</p>
-            <p className="text-xs text-gray-500">m@example.com</p>
+            <p className="text-sm font-medium">Nicholas Kipkoech</p>
+            <p className="text-xs text-gray-500">nickey968@gmail.com</p>
           </div>
         </div>
       </div>
