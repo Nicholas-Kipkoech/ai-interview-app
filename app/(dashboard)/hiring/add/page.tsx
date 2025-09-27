@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Copy, Trash2, Upload, User, Bot } from "lucide-react";
+import { InterviewService } from "@/lib/supabase/interviews";
 
 // -------------------------
 // Types
@@ -56,7 +57,6 @@ function VideoOrAI({
           <span className="text-xs text-green-600">AI Video ID saved</span>
         </div>
       ) : mode === "bot" ? (
-        // Avatar placeholder
         <div className="flex items-center justify-center w-full h-full border rounded bg-gray-50">
           <img
             src="https://files2.heygen.ai/avatar/v3/1ad51ab9fee24ae88af067206e14a1d8_44250/preview_target.webp"
@@ -65,7 +65,6 @@ function VideoOrAI({
           />
         </div>
       ) : (
-        // Human upload UI
         <label className="flex flex-col items-center justify-center w-full h-full border rounded text-gray-400 cursor-pointer">
           <Upload className="h-6 w-6 mb-1" />
           <span className="text-xs">Upload</span>
@@ -139,6 +138,7 @@ export default function AddInterview() {
       mode: "human",
     },
   ]);
+  const [loading, setLoading] = useState(false);
 
   const addQuestion = () =>
     setQuestions([
@@ -157,40 +157,72 @@ export default function AddInterview() {
     setQuestions(questions.filter((q) => q.id !== id));
 
   const handleSave = async () => {
-    // generate video_ids only for bot sections/questions
-    const updatedIntro =
-      intro.mode === "bot" && !intro.videoId
-        ? { ...intro, videoId: await requestAIInterviewVideo(intro.text) }
-        : intro;
+    try {
+      setLoading(true);
+      // 1. Create interview
+      const interview = await InterviewService.createInterview(positionTitle);
 
-    const updatedFarewell =
-      farewell.mode === "bot" && !farewell.videoId
-        ? { ...farewell, videoId: await requestAIInterviewVideo(farewell.text) }
-        : farewell;
+      // 2. Upload intro
+      let introVideoId = intro.videoId || null;
+      if (intro.mode === "bot" && !introVideoId) {
+        introVideoId = await requestAIInterviewVideo(intro.text);
+      }
+      await InterviewService.addContent(interview.id, {
+        type: "introduction",
+        title: null,
+        content: intro.text,
+        orderNo: 1,
+        mode: intro.mode,
+        videoFile: intro.mode === "human" ? intro.video! : null,
+        videoId: intro.mode === "bot" ? introVideoId : null,
+      });
 
-    const updatedQuestions = await Promise.all(
-      questions.map(async (q) =>
-        q.mode === "bot" && !q.videoId
-          ? { ...q, videoId: await requestAIInterviewVideo(q.text) }
-          : q
-      )
-    );
+      // 3. Upload questions
+      for (let i = 0; i < questions.length; i++) {
+        const q = questions[i];
+        let videoId = q.videoId || null;
+        if (q.mode === "bot" && !videoId) {
+          videoId = await requestAIInterviewVideo(q.text);
+        }
+        await InterviewService.addContent(interview.id, {
+          type: "question",
+          title: q.title,
+          content: q.text,
+          orderNo: i + 2,
+          mode: q.mode,
+          videoFile: q.mode === "human" ? q.video! : null,
+          videoId: q.mode === "bot" ? videoId : null,
+        });
+      }
 
-    const newInterview = {
-      positionTitle,
-      intro: updatedIntro,
-      questions: updatedQuestions,
-      farewell: updatedFarewell,
-    };
+      // 4. Upload farewell
+      let farewellVideoId = farewell.videoId || null;
+      if (farewell.mode === "bot" && !farewellVideoId) {
+        farewellVideoId = await requestAIInterviewVideo(farewell.text);
+      }
+      await InterviewService.addContent(interview.id, {
+        type: "farewell",
+        title: null,
+        content: farewell.text,
+        orderNo: questions.length + 2,
+        mode: farewell.mode,
+        videoFile: farewell.mode === "human" ? farewell.video! : null,
+        videoId: farewell.mode === "bot" ? farewellVideoId : null,
+      });
 
-    console.log("Interview Created:", newInterview);
-    // TODO: Save to Supabase here
+      alert("Interview created successfully!");
+      // Optionally, reset form here
+    } catch (error: any) {
+      console.error(error);
+      alert(`Failed to save interview: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="space-y-6">
-      {/* Position Title */}
-      <div className="mt-4">
+      <div className="mt-4 flex flex-col">
         <label className="text-sm font-medium">Position Title</label>
         <Input
           placeholder="Enter position title"
@@ -325,7 +357,9 @@ export default function AddInterview() {
 
       {/* Save */}
       <div className="pt-4">
-        <Button onClick={handleSave}>Save Interview</Button>
+        <Button onClick={handleSave} disabled={loading}>
+          {loading ? "Saving..." : "Save Interview"}
+        </Button>
       </div>
     </div>
   );
