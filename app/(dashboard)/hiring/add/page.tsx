@@ -3,43 +3,77 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Copy, Trash2, Upload, Bot } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { Copy, Trash2, Upload, User, Bot } from "lucide-react";
 
+// -------------------------
+// Types
+// -------------------------
 type Question = {
   id: number;
   title: string;
   text: string;
   video?: File | null;
-  botVoice?: boolean;
+  videoUrl?: string | null;
+  mode: "human" | "bot";
 };
 
 type Section = {
-  video?: File | null;
-  botVoice?: boolean;
   text: string;
-};
-
-type VideoOrBotProps = {
   video?: File | null;
-  botVoice?: boolean;
-  onUpload: (file: File) => void;
-  onToggleBot: () => void;
+  videoUrl?: string | null;
+  mode: "human" | "bot";
 };
 
-function VideoOrBot({
+// -------------------------
+// VideoOrAI Component
+// -------------------------
+type VideoOrAIProps = {
+  mode: "human" | "bot";
+  video?: File | null;
+  videoUrl?: string | null;
+  onUpload: (file: File) => void;
+  onGenerateAI: () => void;
+  onToggle: (nextMode: "human" | "bot") => void;
+};
+
+function VideoOrAI({
+  mode,
   video,
-  botVoice,
+  videoUrl,
   onUpload,
-  onToggleBot,
-}: VideoOrBotProps) {
+  onGenerateAI,
+  onToggle,
+}: VideoOrAIProps) {
+  const handleToggle = async () => {
+    const nextMode = mode === "human" ? "bot" : "human";
+    onToggle(nextMode);
+
+    // Generate only if switching to bot AND no AI video yet
+    if (nextMode === "bot" && !videoUrl) {
+      await onGenerateAI();
+    }
+  };
+
   return (
-    <div className="w-[140px] relative">
-      {/* Upload or Video */}
-      {!botVoice && !video && (
-        <label className="flex flex-col items-center justify-center border rounded p-4 text-gray-500 cursor-pointer h-[140px]">
+    <div className="relative w-[160px] h-[140px]">
+      {/* Video / Upload */}
+      {mode === "human" && video ? (
+        <video
+          controls
+          src={URL.createObjectURL(video)}
+          className="w-full h-full rounded border object-cover"
+        />
+      ) : mode === "bot" && videoUrl ? (
+        <video
+          controls
+          src={videoUrl}
+          className="w-full h-full rounded border object-cover"
+        />
+      ) : (
+        <label className="flex flex-col items-center justify-center w-full h-full border rounded text-gray-400 cursor-pointer">
           <Upload className="h-6 w-6 mb-1" />
-          <span className="text-xs">Upload Video</span>
+          <span className="text-xs">Upload</span>
           <input
             type="file"
             accept="video/*"
@@ -48,48 +82,70 @@ function VideoOrBot({
           />
         </label>
       )}
-      {video && (
-        <video
-          controls
-          src={URL.createObjectURL(video)}
-          className="rounded border w-[140px] h-[140px] object-cover"
-        />
-      )}
 
-      {/* Bot button overlay */}
-      <Button
+      {/* Toggle button at top-right */}
+      <button
         type="button"
-        variant={botVoice ? "default" : "outline"}
-        size="icon"
-        className="absolute top-1 right-1 h-7 w-7 p-0"
-        onClick={onToggleBot}
+        onClick={handleToggle}
+        className="absolute top-1 right-1 bg-white border rounded-full p-1 shadow"
       >
-        <Bot className="h-4 w-4" />
-      </Button>
+        {mode === "human" ? (
+          <User className="h-4 w-4 text-gray-700" />
+        ) : (
+          <Bot className="h-4 w-4 text-gray-700" />
+        )}
+      </button>
     </div>
   );
 }
 
+// -------------------------
+// Mock HeyGen API
+// -------------------------
+const generateAIInterviewVideo = async (text: string): Promise<string> => {
+  // Replace with real HeyGen API call
+  return Promise.resolve("https://samplelib.com/lib/preview/mp4/sample-5s.mp4");
+};
+
+// -------------------------
+// AddInterview Page
+// -------------------------
 export default function AddInterview() {
   const [positionTitle, setPositionTitle] = useState("");
   const [intro, setIntro] = useState<Section>({
     text: "",
     video: null,
-    botVoice: false,
+    videoUrl: null,
+    mode: "human",
   });
   const [farewell, setFarewell] = useState<Section>({
     text: "",
     video: null,
-    botVoice: false,
+    videoUrl: null,
+    mode: "human",
   });
   const [questions, setQuestions] = useState<Question[]>([
-    { id: Date.now(), title: "", text: "", video: null, botVoice: false },
+    {
+      id: Date.now(),
+      title: "",
+      text: "",
+      video: null,
+      videoUrl: null,
+      mode: "human",
+    },
   ]);
 
   const addQuestion = () => {
     setQuestions([
       ...questions,
-      { id: Date.now(), title: "", text: "", video: null, botVoice: false },
+      {
+        id: Date.now(),
+        title: "",
+        text: "",
+        video: null,
+        videoUrl: null,
+        mode: "human",
+      },
     ]);
   };
 
@@ -100,7 +156,7 @@ export default function AddInterview() {
   const handleSave = () => {
     const newInterview = { positionTitle, intro, questions, farewell };
     console.log("Interview Created:", newInterview);
-    // Hook into API call here
+    // TODO: API call
   };
 
   return (
@@ -122,14 +178,22 @@ export default function AddInterview() {
       <div className="border rounded p-4">
         <p className="font-semibold mb-2">Introduction</p>
         <div className="flex items-start gap-4 w-full h-full">
-          <VideoOrBot
+          <VideoOrAI
+            mode={intro.mode}
             video={intro.video || undefined}
-            botVoice={intro.botVoice}
+            videoUrl={intro.videoUrl || undefined}
             onUpload={(file) =>
-              setIntro({ ...intro, video: file, botVoice: false })
+              setIntro({ ...intro, video: file, videoUrl: null })
             }
-            onToggleBot={() =>
-              setIntro({ ...intro, botVoice: !intro.botVoice, video: null })
+            onGenerateAI={async () => {
+              const url = await generateAIInterviewVideo(intro.text);
+              setIntro({ ...intro, videoUrl: url, video: null });
+            }}
+            onToggle={(nextMode) =>
+              setIntro({
+                ...intro,
+                mode: nextMode,
+              })
             }
           />
           <Textarea
@@ -161,23 +225,33 @@ export default function AddInterview() {
           </div>
 
           <div className="flex items-start gap-4">
-            <VideoOrBot
+            <VideoOrAI
+              mode={q.mode}
               video={q.video || undefined}
-              botVoice={q.botVoice}
+              videoUrl={q.videoUrl || undefined}
               onUpload={(file) =>
                 setQuestions(
                   questions.map((qq) =>
-                    qq.id === q.id
-                      ? { ...qq, video: file, botVoice: false }
-                      : qq
+                    qq.id === q.id ? { ...qq, video: file, videoUrl: null } : qq
                   )
                 )
               }
-              onToggleBot={() =>
+              onGenerateAI={async () => {
+                const url = await generateAIInterviewVideo(q.text);
+                setQuestions(
+                  questions.map((qq) =>
+                    qq.id === q.id ? { ...qq, videoUrl: url, video: null } : qq
+                  )
+                );
+              }}
+              onToggle={(nextMode) =>
                 setQuestions(
                   questions.map((qq) =>
                     qq.id === q.id
-                      ? { ...qq, botVoice: !qq.botVoice, video: null }
+                      ? {
+                          ...qq,
+                          mode: nextMode,
+                        }
                       : qq
                   )
                 )
@@ -217,18 +291,22 @@ export default function AddInterview() {
       {/* Farewell Section */}
       <div className="border rounded p-4">
         <p className="font-semibold mb-2">Farewell Message</p>
-        <div className="flex items-start gap-4 w-full ">
-          <VideoOrBot
+        <div className="flex items-start gap-4 w-full">
+          <VideoOrAI
+            mode={farewell.mode}
             video={farewell.video || undefined}
-            botVoice={farewell.botVoice}
+            videoUrl={farewell.videoUrl || undefined}
             onUpload={(file) =>
-              setFarewell({ ...farewell, video: file, botVoice: false })
+              setFarewell({ ...farewell, video: file, videoUrl: null })
             }
-            onToggleBot={() =>
+            onGenerateAI={async () => {
+              const url = await generateAIInterviewVideo(farewell.text);
+              setFarewell({ ...farewell, videoUrl: url, video: null });
+            }}
+            onToggle={(nextMode) =>
               setFarewell({
                 ...farewell,
-                botVoice: !farewell.botVoice,
-                video: null,
+                mode: nextMode,
               })
             }
           />
@@ -241,7 +319,7 @@ export default function AddInterview() {
         </div>
       </div>
 
-      {/* Add buttons */}
+      {/* Add Question Button */}
       <div className="flex gap-3">
         <Button onClick={addQuestion}>+ Add Question</Button>
       </div>
