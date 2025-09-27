@@ -5,47 +5,28 @@ import { Input } from "@/components/ui/input";
 import { Copy, Link } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-
-const positions = [
-  {
-    id: 1,
-    name: "November 2024 Hiring Class",
-    inProgress: 29,
-    completed: 29,
-    passed: 29,
-  },
-  {
-    id: 2,
-    name: "Hypernova Headphones",
-    inProgress: 30,
-    completed: 30,
-    passed: 30,
-  },
-  {
-    id: 3,
-    name: "AeroGlow Desk Lamp",
-    inProgress: 34,
-    completed: 34,
-    passed: 34,
-  },
-  {
-    id: 4,
-    name: "TechTonic Energy Drink",
-    inProgress: 32,
-    completed: 32,
-    passed: 32,
-  },
-  {
-    id: 5,
-    name: "Gamer Gear Pro Controller",
-    inProgress: 38,
-    completed: 38,
-    passed: 38,
-  },
-];
+import { useInterviews } from "@/context/interviews-context"; // <-- use the context
+import { useState } from "react";
 
 export default function Home() {
   const router = useRouter();
+  const { positions, loading } = useInterviews(); // get positions from context
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  if (loading) return <div>Loading positions...</div>;
+
+  async function handleCopyLink(positionID: string) {
+    const shareableLink = `${process.env.NEXT_PUBLIC_APP_URL}/interview/submit/${positionID}`;
+
+    try {
+      await navigator.clipboard.writeText(shareableLink);
+      setCopiedId(positionID);
+      setTimeout(() => setCopiedId(null), 2000); // reset after 2 seconds
+    } catch (err) {
+      console.error("Failed to copy link:", err);
+    }
+  }
+
   return (
     <div className="flex flex-col w-full p-6 space-y-6">
       {/* Header */}
@@ -83,33 +64,39 @@ export default function Home() {
               </tr>
             </thead>
             <tbody>
-              {positions.map((pos) => (
-                <tr key={pos.id} className="border-b last:border-0">
-                  <td className="flex items-center gap-2 py-2">
-                    <Image
-                      src="https://github.com/shadcn.png"
-                      alt="user avatar"
-                      width={52}
-                      height={52}
-                      className=""
-                    />
-                    <span className="truncate max-w-[200px]">{pos.name}</span>
-                  </td>
-                  <td>{pos.inProgress}</td>
-                  <td>{pos.completed}</td>
-                  <td>{pos.passed}</td>
-                  <td>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-1 bg-[#E5E5E5]"
-                    >
-                      <Link className="h-4 w-4" />
-                      Copy Share Link
-                    </Button>
-                  </td>
-                </tr>
-              ))}
+              {positions &&
+                positions.map((pos) => (
+                  <tr key={pos.id} className="border-b last:border-0">
+                    <td className="flex items-center gap-2 py-2">
+                      <Image
+                        src="https://github.com/shadcn.png"
+                        alt="user avatar"
+                        width={52}
+                        height={52}
+                        className=""
+                      />
+                      <span className="truncate max-w-[200px]">
+                        {pos.position_title}
+                      </span>
+                    </td>
+                    <td>{pos.in_progress ?? 0}</td>
+                    <td>{pos.completed ?? 0}</td>
+                    <td>{pos.passed ?? 0}</td>
+                    <td>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-1 bg-[#E5E5E5]"
+                        onClick={() => handleCopyLink(pos.id)}
+                      >
+                        <Link className="h-4 w-4" />
+                        {copiedId === pos.id
+                          ? "Copied to clipboard"
+                          : "Copy Share Link"}
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
