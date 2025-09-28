@@ -142,11 +142,13 @@ export default function InterviewFlow({
       await InterviewService.addInterviewResponse(interviewId, {
         applicant_name: applicantName,
         applicant_email: applicantEmail,
-        answers: responses.map((r) => ({
-          orderNo: r.orderNo,
-          text: r.text,
-          videoFile: r.answerVideoFile ?? undefined,
-        })),
+        answers: responses
+          .filter((r) => r.type === "question") // ✅ only questions
+          .map((r) => ({
+            orderNo: r.orderNo,
+            text: r.text,
+            videoFile: r.answerVideoFile ?? undefined,
+          })),
       });
       alert("Interview submitted!");
     } catch (err) {

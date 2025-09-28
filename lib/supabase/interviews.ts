@@ -340,6 +340,8 @@ export class InterviewService {
         })
       );
 
+      console.log("answerWithUrls....", answersWithUrls);
+
       const { data, error } = await supabase
         .from("interview_responses")
         .insert([
