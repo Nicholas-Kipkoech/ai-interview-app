@@ -15,17 +15,20 @@ import ApplicantDetailsCard from "@/app/components/interview/ApplicantDetailsCar
 import MediaTestCard from "@/app/components/interview/MediaTestCard";
 
 type InterviewContent = {
-  orderNo: number;
+  order_no: number;
   type: "introduction" | "question" | "farewell";
-  text: string;
-  videoUrl?: string | null;
+  content: string;
+  video_url?: string | null;
+  title: string;
 };
 
 type Response = {
   orderNo: number;
   type: string;
   text: string;
+  title: string;
   answerVideoFile?: File | null;
+  videoUrl: string | null;
 };
 
 export default function InterviewFlow({
@@ -60,16 +63,19 @@ export default function InterviewFlow({
 
       const mappedResponses: Response[] = data.contents.map(
         (c: InterviewContent) => ({
-          orderNo: c.orderNo,
+          orderNo: c.order_no,
           type: c.type,
-          text: c.text,
+          text: c.content,
           answerVideoFile: null,
+          title: c.title,
         })
       );
       setResponses(mappedResponses);
     }
     fetchInterview();
   }, [interviewId]);
+
+  console.log("responses", responses);
 
   if (!interview) return <div>Loading...</div>;
 
@@ -99,8 +105,10 @@ export default function InterviewFlow({
         type: "video/webm",
       });
       setCurrentAnswerVideo(file);
-      if (videoRef.current) videoRef.current.srcObject = null;
-      videoRef.current.src = URL.createObjectURL(file);
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+        videoRef.current.src = URL.createObjectURL(file);
+      }
     };
 
     mediaRecorder.start();
@@ -192,15 +200,23 @@ export default function InterviewFlow({
             {step % 2 === 1 ? (
               <>
                 <CardHeader>
-                  <CardTitle>Question {currentQuestionIndex + 1}</CardTitle>
+                  <CardTitle></CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <p>{currentQuestion.text}</p>
-                  <video
-                    controls
-                    src={currentQuestion.videoUrl ?? ""}
-                    className="w-full rounded"
-                  />
+                <CardContent className="space-y-4 flex gap-2">
+                  <div>
+                    <video
+                      controls
+                      src={currentQuestion.videoUrl ?? ""}
+                      className="w-full rounded"
+                    />
+                  </div>
+                  <div>
+                    <p className="font-bold">
+                      Question {currentQuestionIndex + 1}{" "}
+                      {currentQuestion.title}
+                    </p>
+                    <p>{currentQuestion.text}</p>
+                  </div>
                 </CardContent>
                 <CardFooter>
                   <Button onClick={() => setStep(step + 1)}>

@@ -16,7 +16,7 @@ export default function MediaTestCard({
   onStop,
   onNext,
 }: {
-  videoRef: RefObject<HTMLVideoElement>;
+  videoRef: RefObject<HTMLVideoElement> | null;
   recording: boolean;
   onStart: () => void;
   onStop: () => void;
@@ -43,7 +43,7 @@ export default function MediaTestCard({
             Stop Test
           </Button>
         )}
-        <Button onClick={onNext}>Proceed to Questions</Button>
+        <Button onClick={onNext}>Start Question 1</Button>
       </CardFooter>
     </>
   );

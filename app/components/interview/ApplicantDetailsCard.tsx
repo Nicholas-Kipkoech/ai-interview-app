@@ -25,8 +25,11 @@ export default function ApplicantDetailsCard({
   return (
     <>
       <CardHeader>
-        <CardTitle>Your Details</CardTitle>
+        <CardTitle className="font-bold">Thank your for applying</CardTitle>
       </CardHeader>
+      <CardContent>
+        Let’s get some quick information from you so we know who you are.
+      </CardContent>
       <CardContent className="space-y-4">
         <Input
           placeholder="Full Name"
@@ -40,9 +43,9 @@ export default function ApplicantDetailsCard({
           onChange={(e) => onEmailChange(e.target.value)}
         />
       </CardContent>
-      <CardFooter>
-        <Button disabled={!name || !email} onClick={onNext}>
-          Next
+      <CardFooter className="w-full">
+        <Button disabled={!name || !email} onClick={onNext} className="w-full">
+          Audio/Video Test
         </Button>
       </CardFooter>
     </>

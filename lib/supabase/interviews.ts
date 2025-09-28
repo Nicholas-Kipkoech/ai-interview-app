@@ -208,8 +208,6 @@ export class InterviewService {
 
     return data;
   }
-
-  // Fetch a single interview with its content by ID
   static async getInterviewById(interviewId: string) {
     // 1. Fetch interview details
     const { data: interview, error: interviewError } = await supabase
@@ -222,7 +220,7 @@ export class InterviewService {
       throw new Error(`Failed to fetch interview: ${interviewError.message}`);
     }
 
-    // 2. Fetch associated content (intro, questions, farewell)
+    // 2. Fetch associated content
     const { data: contents, error: contentError } = await supabase
       .from("interview_content")
       .select("*")
@@ -235,9 +233,58 @@ export class InterviewService {
       );
     }
 
+    // 3. Resolve missing video URLs by calling HeyGen directly
+    const resolvedContents = await Promise.all(
+      (contents || []).map(async (c) => {
+        if (!c.video_url && c.video_id) {
+          try {
+            let videoUrl = "";
+            while (!videoUrl) {
+              const res = await fetch(
+                `https://api.heygen.com/v1/video_status.get?video_id=${c.video_id}`,
+                {
+                  headers: {
+                    accept: "application/json",
+                    "x-api-key": process.env
+                      .NEXT_PUBLIC_HEYGEN_API_KEY as string,
+                  },
+                }
+              );
+
+              if (!res.ok) {
+                console.error("HeyGen API error:", res.statusText);
+                break;
+              }
+
+              const pollData = await res.json();
+              const status = pollData.data?.status;
+
+              if (status === "completed") {
+                videoUrl = pollData.data.video_url;
+              } else if (status === "failed") {
+                console.error("Video generation failed for:", c.video_id);
+                break;
+              }
+
+              if (!videoUrl) {
+                // wait 3s before retry
+                await new Promise((r) => setTimeout(r, 3000));
+              }
+            }
+
+            return { ...c, video_url: videoUrl || c.video_url };
+          } catch (err) {
+            console.error("Error resolving HeyGen video:", err);
+            return c;
+          }
+        }
+        return c;
+      })
+    );
+
     return {
       ...interview,
-      contents: contents || [],
+      contents: resolvedContents,
     };
   }
 
