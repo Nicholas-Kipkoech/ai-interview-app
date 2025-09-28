@@ -68,6 +68,7 @@ export default function InterviewFlow({
           text: c.content,
           answerVideoFile: null,
           title: c.title,
+          videoUrl: c.video_url,
         })
       );
       setResponses(mappedResponses);
@@ -202,27 +203,30 @@ export default function InterviewFlow({
                 <CardHeader>
                   <CardTitle></CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4 flex gap-2">
+                <CardContent className="space-y-4 flex gap-3 ">
                   <div>
                     <video
                       controls
                       src={currentQuestion.videoUrl ?? ""}
-                      className="w-full rounded"
+                      className="w-80 rounded"
                     />
                   </div>
-                  <div>
-                    <p className="font-bold">
-                      Question {currentQuestionIndex + 1}{" "}
-                      {currentQuestion.title}
-                    </p>
-                    <p>{currentQuestion.text}</p>
+                  <div className="flex flex-col justify-between">
+                    <div>
+                      <p className="font-bold">
+                        Question {currentQuestionIndex + 1}{" "}
+                        {currentQuestion.title}
+                      </p>
+                      <p className="text-md">{currentQuestion.text}</p>
+                    </div>
+                    <div>
+                      <Button onClick={() => setStep(step + 1)}>
+                        Answer Question
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
-                <CardFooter>
-                  <Button onClick={() => setStep(step + 1)}>
-                    Answer Question
-                  </Button>
-                </CardFooter>
+                <CardFooter className="items-end flex justify-end"></CardFooter>
               </>
             ) : (
               <>
