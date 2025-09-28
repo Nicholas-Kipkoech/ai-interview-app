@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Breadcrumb,
@@ -14,15 +13,21 @@ import { Copy, Eye } from "lucide-react";
 
 import EditInterview from "./EditInterview";
 import Analytics from "./Analytics";
+import React from "react";
 
-export default function PositionEditorPage() {
+export default function PositionEditorPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = React.use(params);
   return (
     <div className="p-6 space-y-6">
       {/* Breadcrumb */}
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/hiring">Hiring</BreadcrumbLink>
+            <BreadcrumbLink href="/">Hiring</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -31,27 +36,26 @@ export default function PositionEditorPage() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      {/* Header with actions */}
+      {/* Tabs with action buttons */}
       <div className="flex items-center justify-between">
         <Tabs defaultValue="edit" className="w-full">
-          <div className="flex items-center justify-between">
-            <TabsList>
-              <TabsTrigger value="edit">Edit</TabsTrigger>
-              <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            </TabsList>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                <Eye className="h-4 w-4 mr-1" /> Preview
-              </Button>
-              <Button variant="outline" size="sm">
-                <Copy className="h-4 w-4 mr-1" /> Copy Share Link
-              </Button>
-            </div>
+          <TabsList className="flex-1">
+            <TabsTrigger value="edit">Edit</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          </TabsList>
+
+          <div className="flex gap-2 ml-4">
+            <Button variant="outline" size="sm">
+              <Eye className="h-4 w-4 mr-1" /> Preview
+            </Button>
+            <Button variant="outline" size="sm">
+              <Copy className="h-4 w-4 mr-1" /> Copy Share Link
+            </Button>
           </div>
 
-          {/* Switch content */}
+          {/* Tab Content */}
           <TabsContent value="edit">
-            <EditInterview />
+            <EditInterview interviewId={id} />
           </TabsContent>
           <TabsContent value="analytics">
             <Analytics />

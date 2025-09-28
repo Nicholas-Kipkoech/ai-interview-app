@@ -53,7 +53,7 @@ export class InterviewService {
     // Get public URL
     const {
       data: { publicUrl },
-    } = supabase.storage.from("interview-videos").getPublicUrl(fileName);
+    } = supabase.storage.from("videos").getPublicUrl(fileName);
 
     return publicUrl;
   }
@@ -108,13 +108,147 @@ export class InterviewService {
     return data;
   }
 
-  /**
-   * Add applicant responses for an interview
-   * @param interviewId The interview's ID
-   * @param applicant_name Applicant's name
-   * @param applicant_email Applicant's email
-   * @param answers Array of answers with orderNo, text, and optional videoFile
-   */
+  // Update a single content block
+  static async updateContent(
+    interviewId: string,
+    {
+      contentId,
+      type,
+      title,
+      content,
+      orderNo,
+      mode,
+      videoFile,
+      videoId,
+    }: {
+      contentId?: string; // optional if updating by interview/type
+      type: "introduction" | "question" | "farewell";
+      title?: string | null;
+      content: string;
+      orderNo: number;
+      mode: "human" | "bot";
+      videoFile?: File | null;
+      videoId?: string | null;
+    }
+  ) {
+    let videoUrl: string | null = null;
+
+    if (mode === "human" && videoFile) {
+      videoUrl = await this.uploadVideo(interviewId, videoFile, type);
+    }
+
+    // Determine which row to update
+    const query = supabase.from("interview_content").update({
+      title,
+      content,
+      video_id: mode === "bot" ? videoId : null,
+      video_url: videoUrl,
+      order_no: orderNo,
+      type,
+    });
+
+    if (contentId) {
+      query.eq("id", contentId);
+    } else {
+      query
+        .eq("interview_id", interviewId)
+        .eq("type", type)
+        .eq("order_no", orderNo);
+    }
+
+    const { data, error } = await query.select().maybeSingle();
+
+    if (error) {
+      throw new Error(`Update Content failed: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  // NEW: Upsert helper (create if missing, update if exists)
+  static async upsertContent(
+    interviewId: string,
+    payload: {
+      contentId?: string;
+      type: "introduction" | "question" | "farewell";
+      title?: string | null;
+      content: string;
+      orderNo: number;
+      mode: "human" | "bot";
+      videoFile?: File | null;
+      videoId?: string | null;
+    }
+  ) {
+    if (payload.contentId) {
+      // try update first
+      const updated = await this.updateContent(interviewId, payload);
+      if (updated) return updated;
+    }
+    // fallback → add
+    return this.addContent(interviewId, payload);
+  }
+
+  // Delete a single content block
+  static async deleteContent(contentId: string) {
+    const { data, error } = await supabase
+      .from("interview_content")
+      .delete()
+      .eq("id", contentId)
+      .select()
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Delete Content failed: ${error.message}`);
+    }
+
+    if (!data) {
+      console.log(`No content found with ID ${contentId}, nothing deleted.`);
+      return null;
+    }
+
+    return data;
+  }
+
+  // Fetch a single interview with its content by ID
+  static async getInterviewById(interviewId: string) {
+    // 1. Fetch interview details
+    const { data: interview, error: interviewError } = await supabase
+      .from("interviews")
+      .select("*")
+      .eq("id", interviewId)
+      .single();
+
+    if (interviewError) {
+      throw new Error(`Failed to fetch interview: ${interviewError.message}`);
+    }
+
+    // 2. Fetch associated content (intro, questions, farewell)
+    const { data: contents, error: contentError } = await supabase
+      .from("interview_content")
+      .select("*")
+      .eq("interview_id", interviewId)
+      .order("order_no", { ascending: true });
+
+    if (contentError) {
+      throw new Error(
+        `Failed to fetch interview contents: ${contentError.message}`
+      );
+    }
+
+    return {
+      ...interview,
+      contents: contents || [],
+    };
+  }
+
+  static async fetchInterviews() {
+    const { data, error } = await supabase.from("interviews").select("*");
+    if (error) console.error(error);
+
+    return { data, error };
+  }
+
+  // Add applicant responses
   static async addInterviewResponse(
     interviewId: string,
     {
@@ -132,7 +266,6 @@ export class InterviewService {
     }
   ) {
     try {
-      // 1. Upload any human video responses
       const answersWithUrls = await Promise.all(
         answers.map(async (a) => {
           let videoUrl: string | null = null;
@@ -160,7 +293,6 @@ export class InterviewService {
         })
       );
 
-      // 2. Insert the response into Supabase
       const { data, error } = await supabase
         .from("interview_responses")
         .insert([
@@ -177,12 +309,5 @@ export class InterviewService {
     } catch (err: any) {
       throw new Error(`Failed to save applicant responses: ${err.message}`);
     }
-  }
-
-  static async fetchInterviews() {
-    const { data, error } = await supabase.from("interviews").select("*");
-    if (error) console.error(error);
-
-    return { data, error };
   }
 }
