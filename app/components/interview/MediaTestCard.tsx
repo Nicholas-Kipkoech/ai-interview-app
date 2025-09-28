@@ -16,7 +16,7 @@ export default function MediaTestCard({
   onStop,
   onNext,
 }: {
-  videoRef: RefObject<HTMLVideoElement> | null;
+  videoRef: RefObject<HTMLVideoElement | null>;
   recording: boolean;
   onStart: () => void;
   onStop: () => void;
