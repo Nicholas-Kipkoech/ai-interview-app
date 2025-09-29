@@ -295,7 +295,6 @@ export class InterviewService {
     return { data, error };
   }
 
-  // Add applicant responses
   static async addInterviewResponse(
     interviewId: string,
     {
@@ -314,6 +313,21 @@ export class InterviewService {
     }
   ) {
     try {
+      // 1️⃣ Create a response row for this applicant
+      const { data: responseData, error: respError } = await supabase
+        .from("interview_responses")
+        .insert({
+          interview_id: interviewId,
+          applicant_name,
+          applicant_email,
+        })
+        .select("*")
+        .single();
+
+      if (respError) throw new Error(respError.message);
+      const responseId = responseData.id;
+
+      // 2️⃣ Upload videos and prepare answers
       const answersWithUrls = await Promise.all(
         answers.map(async (a) => {
           let videoUrl: string | null = null;
@@ -327,7 +341,6 @@ export class InterviewService {
                 cacheControl: "3600",
                 upsert: false,
               });
-
             if (uploadError) throw new Error(uploadError.message);
 
             const { data: urlData } = supabase.storage
@@ -338,49 +351,68 @@ export class InterviewService {
           }
 
           return {
-            orderNo: a.orderNo,
+            response_id: responseId,
+            question_id: a.questionId,
             text: a.text,
-            videoUrl,
-            questionId: a.questionId,
+            video_url: videoUrl,
           };
         })
       );
 
-      const { data, error } = await supabase
-        .from("interview_responses")
-        .insert([
-          {
-            interview_id: interviewId,
-            applicant_name,
-            applicant_email,
-            answers: answersWithUrls,
-          },
-        ]);
+      // 3️⃣ Insert each answer into interview_answers
+      const { data: insertedAnswers, error: answersError } = await supabase
+        .from("interview_answers")
+        .insert(answersWithUrls)
+        .select("*"); // returns inserted rows with IDs
 
-      if (error) throw new Error(error.message);
-      return data;
+      if (answersError) throw new Error(answersError.message);
+
+      // 4️⃣ Return inserted answers (with IDs) to update frontend
+      return {
+        responseId,
+        answers: insertedAnswers,
+      };
     } catch (err: any) {
       throw new Error(`Failed to save applicant responses: ${err.message}`);
     }
   }
-  // Fetch applicant + answers
-  static async getInterviewResponseWithAnswers(responseId: string) {
-    const { data, error } = await supabase
-      .from("interview_responses")
-      .select(
-        `
-      id, applicant_name, applicant_email, interview_id,
-      answers:interview_answers (
-        id, text, video_url,
-        question:interview_contents (id, order_no, title, content)
-      )
-    `
-      )
-      .eq("id", responseId)
-      .single();
 
-    if (error) throw error;
-    return { applicant: data, answers: data.answers };
+  static async getInterviewResponsesForInterview(interviewId: string) {
+    // 1. Fetch all responses for the interview
+    const { data: responses, error: responseError } = await supabase
+      .from("interview_responses")
+      .select("*")
+      .eq("interview_id", interviewId);
+
+    if (responseError) throw responseError;
+
+    if (!responses || responses.length === 0) return [];
+
+    // 2. For each response, fetch its answers from interview_answers table
+    const mappedResponses = await Promise.all(
+      responses.map(async (resp: any) => {
+        const { data: answers, error: answersError } = await supabase
+          .from("interview_answers")
+          .select("*")
+          .eq("response_id", resp.id);
+
+        if (answersError) throw answersError;
+
+        return {
+          ...resp,
+          answers: (answers || []).map((a: any, index: number) => ({
+            id: a.question_id,
+            answerId: a.id,
+            question: a.text ?? "",
+            answer: a.text ?? "",
+            videoUrl: a.video_url ?? undefined,
+            orderNo: index + 1,
+          })),
+        };
+      })
+    );
+
+    return mappedResponses;
   }
 
   // Mark a single answer

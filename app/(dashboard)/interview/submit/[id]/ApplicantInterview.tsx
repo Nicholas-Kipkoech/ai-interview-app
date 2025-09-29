@@ -137,23 +137,47 @@ export default function InterviewFlow({
       setCurrentAnswerVideo(null);
     }
   };
-
   const handleSubmit = async () => {
-    saveAnswerVideo();
+    saveAnswerVideo(); // make sure the last recorded video is saved
+
     try {
       setLoading(true);
-      await InterviewService.addInterviewResponse(interviewId, {
-        applicant_name: applicantName,
-        applicant_email: applicantEmail,
-        answers: responses
-          .filter((r) => r.type === "question") // ✅ only questions
-          .map((r) => ({
-            questionId: r.id,
-            orderNo: r.orderNo,
-            text: r.text,
-            videoFile: r.answerVideoFile ?? undefined,
-          })),
+
+      // Prepare answers
+      const answersPayload = responses
+        .filter((r) => r.type === "question")
+        .map((r) => ({
+          questionId: r.id,
+          orderNo: r.orderNo,
+          text: r.text,
+          videoFile: r.answerVideoFile ?? undefined,
+        }));
+
+      // Send to API
+      const savedResponses = await InterviewService.addInterviewResponse(
+        interviewId,
+        {
+          applicant_name: applicantName,
+          applicant_email: applicantEmail,
+          answers: answersPayload,
+        }
+      );
+
+      /**
+       * savedResponses should include the inserted interview_answers,
+       * each with its new id (answerId). We'll map them back to our responses state.
+       */
+      const updatedResponses = responses.map((r) => {
+        if (r.type === "question") {
+          const savedAnswer = savedResponses.answers.find(
+            (a: any) => a.questionId === r.id
+          );
+          return { ...r, answerId: savedAnswer?.id ?? null };
+        }
+        return r;
       });
+
+      setResponses(updatedResponses);
       alert("Interview submitted!");
     } catch (err) {
       console.error(err);

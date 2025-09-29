@@ -58,7 +58,7 @@ export default function PositionEditorPage({
             <EditInterview interviewId={id} />
           </TabsContent>
           <TabsContent value="analytics">
-            <Analytics />
+            <Analytics interviewId={id} />
           </TabsContent>
         </Tabs>
       </div>
