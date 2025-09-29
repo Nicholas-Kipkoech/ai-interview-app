@@ -15,6 +15,7 @@ import ApplicantDetailsCard from "@/app/components/interview/ApplicantDetailsCar
 import MediaTestCard from "@/app/components/interview/MediaTestCard";
 
 type InterviewContent = {
+  id: string;
   order_no: number;
   type: "introduction" | "question" | "farewell";
   content: string;
@@ -23,6 +24,7 @@ type InterviewContent = {
 };
 
 type Response = {
+  id: string;
   orderNo: number;
   type: string;
   text: string;
@@ -63,6 +65,7 @@ export default function InterviewFlow({
 
       const mappedResponses: Response[] = data.contents.map(
         (c: InterviewContent) => ({
+          id: c.id,
           orderNo: c.order_no,
           type: c.type,
           text: c.content,
@@ -145,6 +148,7 @@ export default function InterviewFlow({
         answers: responses
           .filter((r) => r.type === "question") // ✅ only questions
           .map((r) => ({
+            questionId: r.id,
             orderNo: r.orderNo,
             text: r.text,
             videoFile: r.answerVideoFile ?? undefined,

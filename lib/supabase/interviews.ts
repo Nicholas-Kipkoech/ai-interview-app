@@ -306,6 +306,7 @@ export class InterviewService {
       applicant_name: string;
       applicant_email: string;
       answers: {
+        questionId: string;
         orderNo: number;
         text: string;
         videoFile?: File | null;
@@ -336,11 +337,14 @@ export class InterviewService {
             videoUrl = urlData.publicUrl;
           }
 
-          return { orderNo: a.orderNo, text: a.text, videoUrl };
+          return {
+            orderNo: a.orderNo,
+            text: a.text,
+            videoUrl,
+            questionId: a.questionId,
+          };
         })
       );
-
-      console.log("answerWithUrls....", answersWithUrls);
 
       const { data, error } = await supabase
         .from("interview_responses")
@@ -358,5 +362,40 @@ export class InterviewService {
     } catch (err: any) {
       throw new Error(`Failed to save applicant responses: ${err.message}`);
     }
+  }
+  // Fetch applicant + answers
+  static async getInterviewResponseWithAnswers(responseId: string) {
+    const { data, error } = await supabase
+      .from("interview_responses")
+      .select(
+        `
+      id, applicant_name, applicant_email, interview_id,
+      answers:interview_answers (
+        id, text, video_url,
+        question:interview_contents (id, order_no, title, content)
+      )
+    `
+      )
+      .eq("id", responseId)
+      .single();
+
+    if (error) throw error;
+    return { applicant: data, answers: data.answers };
+  }
+
+  // Mark a single answer
+  static async markAnswer(answerId: string, status: "pass" | "fail") {
+    const { error } = await supabase
+      .from("answer_evaluations")
+      .insert([{ answer_id: answerId, status }]);
+    if (error) throw error;
+  }
+
+  // Mark overall interview
+  static async markInterview(responseId: string, status: "pass" | "fail") {
+    const { error } = await supabase
+      .from("interview_evaluations")
+      .insert([{ interview_response_id: responseId, status }]);
+    if (error) throw error;
   }
 }
