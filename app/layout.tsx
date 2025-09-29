@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Sidebar from "./components/Sidebar";
 import { InterviewProvider } from "@/context/interviews-context";
+import { usePathname } from "next/navigation";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,6 +26,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const pathname = usePathname();
+
+  const showSideBar = !pathname.startsWith("/interview");
+
   return (
     <html lang="en">
       <body
@@ -33,7 +38,7 @@ export default function RootLayout({
         <InterviewProvider>
           <div className="flex h-screen">
             {/* Sidebar (client component) */}
-            <Sidebar />
+            {showSideBar && <Sidebar />}
 
             {/* Main content */}
             <div className="flex-1 flex flex-col">
